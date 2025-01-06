@@ -14,7 +14,8 @@ struct NinjaRecord {
 
 struct AppConfig {
     filename: String,
-    counttop: u64
+    counttop: u64,
+    is_exit: bool
 }
 
 struct NinjaStats {
@@ -82,6 +83,7 @@ fn parse_ninja_log(lines: Vec<String>) -> Vec<NinjaRecord> {
 fn parge_args(args: Vec<String>) -> AppConfig {
     let mut name: String = "".to_string();
     let mut top: u64 = 1 << 63;
+    let mut exit = false;
 
     let mut i = 0;
     while i < args.len() {
@@ -97,17 +99,29 @@ fn parge_args(args: Vec<String>) -> AppConfig {
                 i += 1;
             }
         }
+        if args[i].as_str() == "-h" {
+            exit = true;
+            println!("Statistics of ninja log file");
+            println!("args:");
+            println!("\t-h\t \tprint this help message");
+            println!("\t-f\t<path>\tpath to ninja log file");
+            println!("\t-t\t<int>\tamount print lines of top slowly files");
+        }
         i += 1;
     }
 
     return AppConfig {
         filename: name,
-        counttop: top
+        counttop: top,
+        is_exit: exit
     }
 }
 
 fn main() {
     let config = parge_args(env::args().collect());
+    if config.is_exit {
+        return;
+    }
 
     let lines = load_ninja_log(&config.filename);
     let mut records = parse_ninja_log(lines);
@@ -130,7 +144,7 @@ fn main() {
                 println!("{:>8}", "...");
             }
         } else {
-            println!("{:8} ms |    {} (ext: {})", r.dur, r.cmd, r.ext);
+            println!("{:8} ms |    {}", r.dur, r.cmd);
         }
     }
 

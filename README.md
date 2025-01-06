@@ -4,7 +4,18 @@
 $ cargo build --release
 ```
 
-# How to run 
+# How to run
+
+```
+$ ./target/release/nstats -h
+Statistics of ninja log file
+args:
+        -h              print this help message
+        -f      <path>  path to ninja log file
+        -t      <int>   amount print lines of top slowly files
+```
+
+# Example
 
 ```
 $ ./target/release/nstats -f data/.ninja_log_opencv -t 30

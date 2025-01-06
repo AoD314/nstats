@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::env;
+use std::collections::HashSet;
+use std::u64::{MAX, MIN};
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct NinjaRecord {
@@ -12,9 +15,32 @@ struct NinjaRecord {
     ext: String
 }
 
+#[derive(Debug,Hash)]
+struct GroupStats {
+    sum: u64,
+    min: u64,
+    max: u64,
+    count: u32,
+    filename_min: String,
+    filename_max: String
+}
+impl GroupStats {
+    fn new() -> GroupStats {
+        GroupStats {
+            sum: 0,
+            min: MAX,
+            max: MIN,
+            count: 0,
+            filename_min: String::new(),
+            filename_max: String::new()
+        }
+    }
+}
+
 struct AppConfig {
     filename: String,
     counttop: u64,
+    is_group: bool,
     is_exit: bool
 }
 
@@ -56,7 +82,7 @@ fn parse_ninja_log(lines: Vec<String>) -> Vec<NinjaRecord> {
 
             let paths = p.split("/").collect::<Vec<_>>();
             let name = paths[paths.len() - 1];
-            let mut extension = "link".to_string();
+            let mut extension = "app".to_string();
 
             let names_arr = name.split(".").collect::<Vec<_>>();
 
@@ -82,7 +108,8 @@ fn parse_ninja_log(lines: Vec<String>) -> Vec<NinjaRecord> {
 
 fn parge_args(args: Vec<String>) -> AppConfig {
     let mut name: String = "".to_string();
-    let mut top: u64 = 1 << 63;
+    let mut top: u64 = MAX;
+    let mut group: bool = false;
     let mut exit = false;
 
     let mut i = 0;
@@ -105,14 +132,20 @@ fn parge_args(args: Vec<String>) -> AppConfig {
             println!("args:");
             println!("\t-h\t \tprint this help message");
             println!("\t-f\t<path>\tpath to ninja log file");
+            println!("\t-g\t \tprint group stats");
             println!("\t-t\t<int>\tamount print lines of top slowly files");
         }
+        if args[i].as_str() == "-g" {
+            group = true;
+        }
+
         i += 1;
     }
 
     return AppConfig {
         filename: name,
         counttop: top,
+        is_group: group,
         is_exit: exit
     }
 }
@@ -133,11 +166,37 @@ fn main() {
         files: 0
     };
 
+    let extensions = HashSet::from(["o", "so", "app", "cpp"]);
+    let mut group_stats_map = HashMap::new();
+    for ext in &extensions {
+        let mut gs = GroupStats::new();
+        group_stats_map.insert(ext, gs);
+    };
+
     let mut count = 0;
     for r in &records {
         stats.sum_time += r.dur;
         stats.total_time = if stats.total_time < r.end { r.end } else { stats.total_time };
         stats.files += 1;
+
+        if extensions.contains(r.ext.as_str()) {
+            match group_stats_map.get_mut(&r.ext.as_str()) {
+                Some(gs) => {
+                    gs.count += 1;
+                    if gs.max < r.dur {
+                        gs.max = r.dur;
+                        gs.filename_max = r.cmd.clone();
+                    }
+                    if gs.min > r.dur {
+                        gs.min = r.dur;
+                        gs.filename_min = r.cmd.clone();
+                    }
+                    gs.sum += r.dur;
+                },
+                None => (),
+            }
+        }
+
         count += 1;
         if count >= config.counttop {
             if count == config.counttop {
@@ -148,10 +207,21 @@ fn main() {
         }
     }
 
+    if config.is_group {
+        println!("GroupStats:");
+        for (ext, gs) in &group_stats_map {
+            println!("{ext}: {}", gs.count);
+            println!("\t{:8}: {}", "sum", time_to_string(gs.sum));
+            println!("\t{:8}: {} ms ({})", "min", gs.min, gs.filename_min);
+            println!("\t{:8}: {} ms ({})", "max", gs.max, gs.filename_max);
+            println!("\t{:8}: {:.1} ms", "avg", gs.sum as f64 / gs.count as f64);
+        }
+    }
+
     let speed_ratio = stats.sum_time as f64 / stats.total_time as f64;
 
     println!("\nStats:");
-    println!("  cpu time      : {:?}", time_to_string(stats.sum_time));
+    println!("  cpu time (1T) : {:?}", time_to_string(stats.sum_time));
     println!("  compile time  : {:?}", time_to_string(stats.total_time));
     println!("  speed ratio   : {:.2}", speed_ratio);
     println!("  avg build time: {:.1} ms", stats.sum_time as f64 / stats.files  as f64);

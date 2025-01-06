@@ -121,14 +121,16 @@ fn main() {
 
     let mut count = 0;
     for r in &records {
-        println!("{:8} ms |    {} (ext: {})", r.dur, r.cmd, r.ext);
         stats.sum_time += r.dur;
         stats.total_time = if stats.total_time < r.end { r.end } else { stats.total_time };
         stats.files += 1;
         count += 1;
         if count >= config.counttop {
-            println!("{:>8}", "...");
-            break;
+            if count == config.counttop {
+                println!("{:>8}", "...");
+            }
+        } else {
+            println!("{:8} ms |    {} (ext: {})", r.dur, r.cmd, r.ext);
         }
     }
 

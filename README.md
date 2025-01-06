@@ -12,6 +12,7 @@ Statistics of ninja log file
 args:
         -h              print this help message
         -f      <path>  path to ninja log file
+        -g              print group stats
         -t      <int>   amount print lines of top slowly files
 ```
 

@@ -169,7 +169,7 @@ fn main() {
     let extensions = HashSet::from(["o", "so", "app", "cpp"]);
     let mut group_stats_map = HashMap::new();
     for ext in &extensions {
-        let mut gs = GroupStats::new();
+        let gs = GroupStats::new();
         group_stats_map.insert(ext, gs);
     };
 

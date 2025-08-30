@@ -10,10 +10,11 @@ $ cargo build --release
 $ ./target/release/nstats -h
 Statistics of ninja log file
 args:
-        -h              print this help message
-        -f      <path>  path to ninja log file
-        -g              print group stats
-        -t      <int>   amount print lines of top slowly files
+    -h --help        print this help message
+    -f <path>        path to ninja log file
+    -g               print group stats
+    -n --sort-name   sort stats by filename
+    -t <int>         amount print lines of top slowly files
 ```
 
 # Example

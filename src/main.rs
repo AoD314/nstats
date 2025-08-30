@@ -41,7 +41,8 @@ struct AppConfig {
     filename: String,
     counttop: u64,
     is_group: bool,
-    is_exit: bool
+    is_exit: bool,
+    is_sort_name: bool
 }
 
 struct NinjaStats {
@@ -72,7 +73,7 @@ fn load_ninja_log(filename: &str) -> Vec<String> {
 
 fn parse_ninja_log(lines: Vec<String>) -> Vec<NinjaRecord> {
     // let extensions = ["o", "link", "cpp", "c", "h", "hpp", "so", "a"];
-    let mut records = Vec::new();
+    let mut records = Vec::with_capacity(100);
 
     for r in lines.iter() {
         let arr = r.split("\t").collect::<Vec<_>>();
@@ -94,7 +95,7 @@ fn parse_ninja_log(lines: Vec<String>) -> Vec<NinjaRecord> {
                 start: arr[0].parse::<u64>().unwrap(),
                 end: arr[1].parse::<u64>().unwrap(),
                 time: arr[2].parse::<u64>().unwrap(),
-                cmd: paths.join("/").to_string(),
+                cmd: p,
                 hash: arr[4].to_string(),
                 dur: arr[1].parse::<u64>().unwrap() - arr[0].parse::<u64>().unwrap(),
                 ext: extension
@@ -111,6 +112,7 @@ fn parge_args(args: Vec<String>) -> AppConfig {
     let mut top: u64 = MAX;
     let mut group: bool = false;
     let mut exit = false;
+    let mut sort_name = false;
 
     let mut i = 0;
     while i < args.len() {
@@ -126,14 +128,18 @@ fn parge_args(args: Vec<String>) -> AppConfig {
                 i += 1;
             }
         }
-        if args[i].as_str() == "-h" {
+        if args[i].as_str() == "-n" || args[i].as_str() == "--sort-name" {
+            sort_name = true;
+        }
+        if args[i].as_str() == "-h" || args[i].as_str() == "--help" {
             exit = true;
             println!("Statistics of ninja log file");
             println!("args:");
-            println!("\t-h\t \tprint this help message");
-            println!("\t-f\t<path>\tpath to ninja log file");
-            println!("\t-g\t \tprint group stats");
-            println!("\t-t\t<int>\tamount print lines of top slowly files");
+            println!("    {:16} {}", "-h --help", "print this help message");
+            println!("    {:16} {}", "-f <path>", "path to ninja log file");
+            println!("    {:16} {}", "-g", "print group stats");
+            println!("    {:16} {}", "-n --sort-name", "sort stats by filename");
+            println!("    {:16} {}", "-t <int>", "amount print lines of top slowly files");
         }
         if args[i].as_str() == "-g" {
             group = true;
@@ -146,7 +152,8 @@ fn parge_args(args: Vec<String>) -> AppConfig {
         filename: name,
         counttop: top,
         is_group: group,
-        is_exit: exit
+        is_exit: exit,
+        is_sort_name: sort_name
     }
 }
 
@@ -158,7 +165,13 @@ fn main() {
 
     let lines = load_ninja_log(&config.filename);
     let mut records = parse_ninja_log(lines);
-    records.sort_by(|a, b| b.dur.cmp(&a.dur));
+    if config.is_sort_name {
+        records.sort_by(|a, b| b.cmd.cmp(&a.cmd));
+    }
+    else {
+        records.sort_by(|a, b| b.dur.cmp(&a.dur));
+    }
+
 
     let mut stats = NinjaStats {
         total_time: 0,

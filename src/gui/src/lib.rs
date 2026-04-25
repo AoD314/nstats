@@ -61,8 +61,16 @@ pub fn run_window(ninja: NinjaFile) {
                 Event::KeyDown { keycode, .. } => {
                     match keycode {
                         // Выход по клавише Escape
-                        Some(Keycode::KpPlus) => win_size.k = if win_size.k > 19 { 20 } else { win_size.k + 1 },
-                        Some(Keycode::KpMinus) => win_size.k = if win_size.k < -19 { -20 } else { win_size.k - 1 },
+                        Some(Keycode::KpPlus) => {
+                            win_size.block_h += 2;
+                            win_size.block_h = if win_size.block_h > 64 { 64 } else { win_size.block_h };
+                            win_size.block_delta = win_size.block_h >> 1;
+                        }
+                        Some(Keycode::KpMinus) => {
+                            win_size.block_h -= 2;
+                            win_size.block_h = if win_size.block_h < 8 { 8 } else { win_size.block_h };
+                            win_size.block_delta = win_size.block_h >> 1;
+                        }
                         Some(Keycode::Home) => {
                             win_size.x = 0;
                             win_size.y = 0;
@@ -111,6 +119,13 @@ pub fn run_window(ninja: NinjaFile) {
                     if mouse_btn == MouseButton::Left {
                         is_down = false;
                     }
+                }
+                // Обработка прокрутки колесика
+                Event::MouseWheel { x: _, y, .. } => {
+                    win_size.k += y as i32;
+
+                    win_size.k = if win_size.k > 20 { 20 } else { win_size.k };
+                    win_size.k = if win_size.k < -20 { -20 } else { win_size.k };
                 }
                 _ => {}
             }

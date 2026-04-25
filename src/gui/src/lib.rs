@@ -2,7 +2,6 @@ use ninjalib::ninjalib::NinjaFile;
 use sdl3::mouse::MouseButton;
 use sdl3::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 use sdl3_ttf_sys::*;
-use std::iter::Inspect;
 use std::time::{Duration, Instant};
 
 struct WindowSize {
@@ -72,8 +71,10 @@ pub fn run_window(ninja: NinjaFile) {
     let mut pos_prev_y = -1i32;
     let mut pos_x = -1i32;
     let mut pos_y = -1i32;
+    let mut iter = 1;
 
     'running: loop {
+        iter = (iter + 1) % 600;
         let timer = Instant::now();
 
         (win_size.w, win_size.h) = canvas.output_size().unwrap();
@@ -195,7 +196,9 @@ pub fn run_window(ninja: NinjaFile) {
 
         canvas.present();
 
-        println!("render time: {:?}", timer.elapsed());
+        if iter == 0 {
+            println!("render time: {:?}", timer.elapsed());
+        }
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }

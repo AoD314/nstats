@@ -1,3 +1,4 @@
+use gui;
 use ninjalib::ninjalib::NinjaFile;
 use std::env;
 
@@ -68,4 +69,7 @@ fn main() {
     let mut ninja = NinjaFile::new(config.filename.as_str());
     let str_stats = ninja.to_string(config.max_files, config.is_sort_by_name);
     println!("{}", str_stats);
+    if config.is_gui {
+        gui::run_window(ninja);
+    }
 }

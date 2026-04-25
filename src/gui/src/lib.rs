@@ -1,7 +1,9 @@
 use ninjalib::ninjalib::NinjaFile;
 use sdl3::mouse::MouseButton;
 use sdl3::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
-use std::time::Duration;
+use sdl3_ttf_sys::*;
+use std::iter::Inspect;
+use std::time::{Duration, Instant};
 
 struct WindowSize {
     x: u64,
@@ -25,13 +27,36 @@ pub fn run_window(ninja: NinjaFile) {
     let window = video_subsystem.window("ninja log viz", 960, 540).resizable().position_centered().build().unwrap();
 
     let mut canvas = window.into_canvas();
+
+    let renderer = canvas.raw();
+
+    unsafe {
+        if !ttf::TTF_Init() {
+            println!("Ошибка инициализации SDL_ttf");
+        }
+    }
+
+    let engine = unsafe { ttf::TTF_CreateRendererTextEngine(renderer) };
+
+    let font_path = "font/jb.ttf\0"; // Обязательно нуль-терминированная строка!
+    let font_size = 12;
+
+    let font = unsafe {
+        let f = ttf::TTF_OpenFont(font_path.as_ptr() as *const i8, font_size as f32);
+        if f.is_null() {
+            println!("Не удалось загрузить шрифт");
+            println!("{:?}", sdl3::get_error());
+        }
+        f
+    };
+
     let mut win_size = WindowSize {
         x: 0,
         y: 0,
         w: 960,
         h: 540,
         block_delta: 10,
-        block_h: 30,
+        block_h: 20,
         k: 1,
     };
 
@@ -49,6 +74,8 @@ pub fn run_window(ninja: NinjaFile) {
     let mut pos_y = -1i32;
 
     'running: loop {
+        let timer = Instant::now();
+
         (win_size.w, win_size.h) = canvas.output_size().unwrap();
         let scale = get_scale(&win_size);
 
@@ -144,11 +171,37 @@ pub fn run_window(ninja: NinjaFile) {
             let w = (rec.dur as f32 * scale) as u32;
             let h = (win_size.block_h) as u32;
 
+            if x > win_size.w as i32 || y > win_size.h as i32 || x + (w as i32) < 0 || y + (h as i32) < 0 {
+                continue;
+            }
+
+            let mut text_len = rec.cmd.len();
+            let text = match rec.cmd.split("/").last() {
+                None => rec.cmd.as_ptr(),
+                Some(t) => {
+                    text_len = t.len();
+                    t.as_ptr()
+                }
+            };
+
+            unsafe {
+                let text = ttf::TTF_CreateText(engine, font, text as *const i8, text_len);
+                ttf::TTF_DrawRendererText(text, 8.0 + x as f32, y as f32);
+                ttf::TTF_DestroyText(text);
+            }
+
             canvas.draw_rect(Rect::new(x, y, w, h)).unwrap();
         }
 
         canvas.present();
+
+        println!("render time: {:?}", timer.elapsed());
+
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+    }
+    unsafe {
+        ttf::TTF_CloseFont(font);
+        ttf::TTF_Quit();
     }
 }
 

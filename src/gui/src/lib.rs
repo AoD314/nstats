@@ -1,5 +1,6 @@
 use ninjalib::ninjalib::NinjaFile;
 use sdl3::mouse::MouseButton;
+use sdl3::render::FPoint;
 use sdl3::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 use sdl3_ttf_sys::*;
 use std::time::{Duration, Instant};
@@ -31,19 +32,19 @@ pub fn run_window(ninja: NinjaFile) {
 
     unsafe {
         if !ttf::TTF_Init() {
-            println!("Ошибка инициализации SDL_ttf");
+            println!("Fail initialization of SDL_ttf");
         }
     }
 
     let engine = unsafe { ttf::TTF_CreateRendererTextEngine(renderer) };
 
-    let font_path = "font/jb.ttf\0"; // Обязательно нуль-терминированная строка!
+    let font_path = "font/jb.ttf\0";
     let font_size = 12;
 
     let font = unsafe {
         let f = ttf::TTF_OpenFont(font_path.as_ptr() as *const i8, font_size as f32);
         if f.is_null() {
-            println!("Не удалось загрузить шрифт");
+            println!("Fail to load font");
             println!("{:?}", sdl3::get_error());
         }
         f
@@ -160,9 +161,46 @@ pub fn run_window(ninja: NinjaFile) {
         }
 
         // render
-
         canvas.set_draw_color(Color::RGB(10, 10, 10));
         canvas.clear();
+
+        // Measuring scale
+        // choose step
+        let scale_step = match scale {
+            0.01..0.1 => 1000,
+            0.1..1.0 => 100,
+            1.0..10.0 => 10,
+            _ => 1,
+        };
+
+        let mscale_color = match scale_step {
+            1 => Color::RGB(255, 0, 0),
+            10 => Color::RGB(0, 255, 0),
+            100 => Color::RGB(0, 0, 255),
+            1000 => Color::RGB(255, 255, 255),
+            _ => Color::RGB(50, 50, 50),
+        };
+
+        canvas.set_draw_color(mscale_color);
+
+        let mut index = 0;
+        loop {
+            let x = shift + ((index * scale_step) as f32 * scale) as i32 - win_size.x as i32;
+            if x > 0 {
+                let start = FPoint { x: x as f32, y: 0.0 };
+                let end = FPoint { x: x as f32, y: 45.0 };
+                canvas.draw_line(start, end).unwrap();
+            }
+            if x > win_size.w as i32 || index > 10000 {
+                break;
+            }
+            index += 1;
+
+            // println!("scale_step: {:?}", scale_step);
+            // println!("scale: {:?}", scale);
+            // println!("index: {:?}", index);
+            // println!("x: {:?}", x);
+        }
 
         canvas.set_draw_color(Color::RGB(255, 255, 255));
 

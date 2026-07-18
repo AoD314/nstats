@@ -18,13 +18,6 @@ struct WindowSize {
     block_h: u16,    // height line in px
 }
 
-struct RectFile {
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
-}
-
 fn get_scale(ws: &WindowSize) -> f32 {
     100.0_f32 / (1 << ws.k) as f32
 }
@@ -71,7 +64,7 @@ pub fn run_window(ninja: NinjaFile) {
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("ninja log viz", 960, 540).resizable().position_centered().build().unwrap();
+    let window = video_subsystem.window("ninja log viz", 1900, 1000).resizable().position_centered().build().unwrap();
 
     let mut canvas = window.into_canvas();
 
@@ -106,6 +99,7 @@ pub fn run_window(ninja: NinjaFile) {
         block_h: 20,
         k: 1,
     };
+    let mut far_elements = 0;
 
     let shift: i32 = 100;
 
@@ -144,7 +138,7 @@ pub fn run_window(ninja: NinjaFile) {
                         }
                         Some(Keycode::KpMinus) => {
                             win_size.block_h -= 2;
-                            win_size.block_h = if win_size.block_h < 8 { 8 } else { win_size.block_h };
+                            win_size.block_h = if win_size.block_h < 16 { 16 } else { win_size.block_h };
                             win_size.block_delta = (win_size.block_h >> 1) as u8;
                         }
                         Some(Keycode::Home) => {
@@ -154,7 +148,6 @@ pub fn run_window(ninja: NinjaFile) {
                         }
                         _ => {}
                     }
-                    // println!("k: {}", win_size.k);
                 }
                 Event::MouseButtonDown { mouse_btn, x, y, .. } => {
                     match mouse_btn {
@@ -206,7 +199,22 @@ pub fn run_window(ninja: NinjaFile) {
                     } else if v >= 16 {
                         win_size.k = 16;
                     } else {
+                        let old_x = (1u32 << win_size.k) as f32 * (win_size.x + win_size.w / 2 - 100) as f32 / 100.0;
+
+                        // println!("old: {:} --- {:} ms", old_x, 1u32 << win_size.k);
+
                         win_size.k = v as u8;
+
+                        let mut new_x = (100.0 * old_x / (1u32 << win_size.k) as f32) as u32 + 100;
+                        if new_x > win_size.w / 2 {
+                            new_x -= win_size.w / 2;
+                            if new_x > far_elements {
+                                new_x = far_elements;
+                            }
+                        }
+                        // println!("new: {:} --- {:} ms", new_x, 1u32 << win_size.k);
+
+                        win_size.x = new_x;
                     }
                 }
                 _ => {}
@@ -227,6 +235,10 @@ pub fn run_window(ninja: NinjaFile) {
             let w = (rec.dur as f32 * scale) as u32;
             let h = (win_size.block_h) as u32;
 
+            if far_elements < x as u32 + w {
+                far_elements = x as u32 + w;
+            }
+
             if x > win_size.w as i32 || y > win_size.h as i32 || x + (w as i32) < 0 || y + (h as i32) < 0 {
                 continue;
             }
@@ -242,7 +254,7 @@ pub fn run_window(ninja: NinjaFile) {
 
             unsafe {
                 let text = ttf::TTF_CreateText(engine, font, text as *const i8, text_len);
-                ttf::TTF_DrawRendererText(text, 8.0 + x as f32, y as f32);
+                ttf::TTF_DrawRendererText(text, 8.0 + x as f32, y as f32 + (win_size.block_h as f32 / 2.0) - 9.0);
                 ttf::TTF_DestroyText(text);
             }
 
@@ -252,7 +264,7 @@ pub fn run_window(ninja: NinjaFile) {
         canvas.present();
 
         if iter == 0 {
-            println!("render time: {:?}", timer.elapsed());
+            println!("render time: {:6.2?}", timer.elapsed());
         }
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

@@ -54,7 +54,7 @@ impl NinjaFile {
 
         ninjafile.stats.reading_time_in_ms = reading_time;
         ninjafile.stats.parsing_time_in_ms = parsing_time;
-        ninjafile.stats.filename = filename.clone().to_string();
+        ninjafile.stats.filename = filename.to_string();
         ninjafile
     }
 

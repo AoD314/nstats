@@ -16,6 +16,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Check system
+      run: |
+        cat /etc/os-release
+        nproc
+        free -h
     - name: Install system packages
       run: |
         sudo apt-get update

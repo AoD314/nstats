@@ -18,6 +18,9 @@ pub struct NinjaStats {
     pub sum_time: u64,
     pub files: u32,
     pub threads: u32,
+    pub reading_time_in_ms: f32,
+    pub parsing_time_in_ms: f32,
+    pub filename: String,
 }
 
 #[derive(Debug)]
@@ -35,14 +38,24 @@ pub fn time_to_string(t: u64) -> String {
     let s = ms / (1 * 1000);
     ms -= s * (1 * 1000);
 
-    format!("{:02}:{:02}:{:02}.{:03} ({:12} ms)", h, m, s, ms, t)
+    format!("{:4}:{:02}:{:02}.{:03} ({:13} ms)", h, m, s, ms, t)
 }
 
 impl NinjaFile {
     pub fn new(filename: &str) -> Self {
+        let start = std::time::Instant::now();
         let text = read_to_string(filename).unwrap();
         let lines = text.lines().collect();
-        parse_ninja_log(lines)
+        let reading_time = start.elapsed().as_micros() as f32 / 1000.0;
+
+        let start = std::time::Instant::now();
+        let mut ninjafile = parse_ninja_log(lines);
+        let parsing_time = start.elapsed().as_micros() as f32 / 1000.0;
+
+        ninjafile.stats.reading_time_in_ms = reading_time;
+        ninjafile.stats.parsing_time_in_ms = parsing_time;
+        ninjafile.stats.filename = filename.clone().to_string();
+        ninjafile
     }
 
     pub fn to_string(&mut self, max_files: usize, sort_by_name: bool) -> String {
@@ -55,6 +68,15 @@ impl NinjaFile {
         let cap = if max_files == 0 { 8192 } else { max_files * 128 };
 
         let mut str_stats = String::with_capacity(cap);
+
+        writeln!(
+            &mut str_stats,
+            "Application stats:\n       file: {}\n    reading: {:7.3} ms\n    parsing: {:7.3} ms\n",
+            self.stats.filename, self.stats.reading_time_in_ms, self.stats.parsing_time_in_ms
+        )
+        .unwrap();
+
+        writeln!(&mut str_stats, "Ninja stats:").unwrap();
 
         for (i, rec) in self.records.iter().enumerate() {
             if i >= max_files {
@@ -83,10 +105,13 @@ fn parse_ninja_log(lines: Vec<&str>) -> NinjaFile {
     let mut records = Vec::with_capacity(lines.len());
 
     let mut stats = NinjaStats {
-        total_time: 0,
         sum_time: 0,
+        total_time: 0,
         files: 0,
         threads: 0,
+        reading_time_in_ms: 0.0,
+        parsing_time_in_ms: 0.0,
+        filename: String::new(),
     };
 
     for r in lines.iter() {

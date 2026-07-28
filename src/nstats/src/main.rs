@@ -11,8 +11,8 @@ struct AppConfig {
 }
 
 fn parge_args(args: Vec<String>) -> AppConfig {
-    let mut name: String = "".to_string();
-    let mut max_files: usize = 4096;
+    let mut name = String::new();
+    let mut max_files: usize = 314;
     let mut exit = false;
     let mut gui = false;
     let mut sort_name = false;
@@ -34,6 +34,10 @@ fn parge_args(args: Vec<String>) -> AppConfig {
         if args[i].as_str() == "--sort-by-name" {
             sort_name = true;
         }
+        if args[i].as_str() == "-v" || args[i].as_str() == "--version" {
+            exit = true;
+            println!("nstats version: v0.1");
+        }
         if args[i].as_str() == "--gui" {
             gui = true;
         }
@@ -42,10 +46,11 @@ fn parge_args(args: Vec<String>) -> AppConfig {
             println!("Statistics of ninja log file");
             println!("args:");
             println!("    {:16} {}", "-h --help", "print this help message");
+            println!("    {:16} {}", "-v --version", "print version of application");
             println!("    {:16} {}", "-f <path>", "path to ninja log file");
-            println!("    {:16} {}", "--gui", "run gui for view ninja log (default: false)");
             println!("    {:16} {}", "--sort-by-name", "sort stats by filename (default: by time)");
-            println!("    {:16} {}", "-m <int>", "maximum lines of top slow files (default: 4096)");
+            println!("    {:16} {}", "-m <int>", "show maximum lines of top slow files (default: 314)");
+            println!("    {:16} {}", "--gui", "run gui for view ninja log (default: false)");
         }
 
         i += 1;

@@ -12,6 +12,7 @@ pub struct NinjaRecord {
     pub hash: String,
 }
 
+#[derive(Debug)]
 pub struct NinjaStats {
     pub total_time: u64,
     pub sum_time: u64,
@@ -19,6 +20,7 @@ pub struct NinjaStats {
     pub threads: u32,
 }
 
+#[derive(Debug)]
 pub struct NinjaFile {
     pub records: Vec<NinjaRecord>,
     pub stats: NinjaStats,
@@ -38,7 +40,8 @@ pub fn time_to_string(t: u64) -> String {
 
 impl NinjaFile {
     pub fn new(filename: &str) -> Self {
-        let lines = read_to_string(filename).unwrap().lines().map(String::from).collect();
+        let text = read_to_string(filename).unwrap();
+        let lines = text.lines().collect();
         parse_ninja_log(lines)
     }
 
@@ -76,7 +79,7 @@ impl NinjaFile {
     }
 }
 
-fn parse_ninja_log(lines: Vec<String>) -> NinjaFile {
+fn parse_ninja_log(lines: Vec<&str>) -> NinjaFile {
     let mut records = Vec::with_capacity(lines.len());
 
     let mut stats = NinjaStats {
@@ -137,4 +140,18 @@ fn parse_ninja_log(lines: Vec<String>) -> NinjaFile {
     stats.threads = threads_duration.len() as u32;
 
     NinjaFile { records: records, stats: stats }
+}
+
+#[test]
+fn parse_3_lines_ninja_log() {
+    let ninja_log = vec![
+        "# ninja log v7",
+        "2\t49\t1785132070100181101\tsrc/mlib/CMakeFiles/mlib.dir/processor.cpp.o.ddi\t4d9854bcb5b03b94",
+        "2\t53\t1785132070099882574\tsrc/mlib/CMakeFiles/mlib.dir/mmemory.cpp.o.ddi\t8391f03920f71ade",
+        "1\t95\t1785132070099241285\tsrc/mlib/CMakeFiles/mlib.dir/exception.cpp.o.ddi\t327fbbcf0d6be5c6",
+    ];
+
+    let ninja = parse_ninja_log(ninja_log);
+    println!("{:?}", ninja);
+    assert_eq!(ninja.records.len(), 3);
 }

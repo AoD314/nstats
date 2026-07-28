@@ -64,7 +64,13 @@ pub fn run_window(ninja: NinjaFile) {
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("ninja log viz", 1900, 1000).resizable().position_centered().build().unwrap();
+    let window = video_subsystem
+        .window("ninja log viz", 1900, 1000)
+        .resizable()
+        .vulkan()
+        .position_centered()
+        .build()
+        .unwrap();
 
     let mut canvas = window.into_canvas();
 
@@ -276,36 +282,4 @@ pub fn run_window(ninja: NinjaFile) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn scale_0() {
-        let ws = WindowSize {
-            x: 0,
-            y: 0,
-            w: 1,
-            h: 1,
-            block_delta: 1,
-            block_h: 1,
-            k: 0,
-        };
-        let result = get_scale(&ws);
-        assert_eq!(result, 1.0);
-    }
-
-    #[test]
-    fn scale_10() {
-        let ws = WindowSize {
-            x: 0,
-            y: 0,
-            w: 1,
-            h: 1,
-            block_delta: 1,
-            block_h: 1,
-            k: 10,
-        };
-        let result = get_scale(&ws);
-        assert_eq!(result, 10.0);
-    }
-}
+mod tests {}

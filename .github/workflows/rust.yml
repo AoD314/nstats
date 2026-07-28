@@ -21,6 +21,7 @@ jobs:
         cat /etc/os-release
         nproc
         free -h
+        cargo --version
     - name: Install system packages
       run: |
         sudo apt-get update

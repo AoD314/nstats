@@ -16,8 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Configure
-      run: sudo apt install libsdl3-dev libsdl3-ttf-dev libsdl3-image-dev
+    - name: Install system packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsdl3-dev libsdl3-ttf-dev libsdl3-image-dev
     - name: Build
       run: cargo build --release --verbose
     - name: Run tests
